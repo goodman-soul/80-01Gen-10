@@ -1,0 +1,73 @@
+import type { User } from '@/types';
+
+export const mockUsers: User[] = [
+  {
+    id: 'user_001',
+    name: '张玉兰',
+    phone: '13800138001',
+    role: 'resident',
+    building: '8栋',
+    room: '1203室',
+    creditScore: 95,
+    permissionLevel: 'normal',
+    createdAt: '2025-03-15T10:30:00.000Z',
+  },
+  {
+    id: 'user_002',
+    name: '李建国',
+    phone: '13800138002',
+    role: 'resident',
+    building: '5栋',
+    room: '0601室',
+    creditScore: 88,
+    permissionLevel: 'normal',
+    createdAt: '2025-04-02T14:20:00.000Z',
+  },
+  {
+    id: 'user_003',
+    name: '王晓梅',
+    phone: '13800138003',
+    role: 'resident',
+    building: '12栋',
+    room: '1508室',
+    creditScore: 55,
+    permissionLevel: 'restricted',
+    createdAt: '2025-02-28T09:15:00.000Z',
+  },
+  {
+    id: 'user_004',
+    name: '陈美玲',
+    phone: '13800138004',
+    role: 'resident',
+    building: '3栋',
+    room: '0205室',
+    creditScore: 92,
+    permissionLevel: 'normal',
+    createdAt: '2025-05-10T16:45:00.000Z',
+  },
+  {
+    id: 'user_005',
+    name: '刘强东',
+    phone: '13800138005',
+    role: 'resident',
+    building: '10栋',
+    room: '0808室',
+    creditScore: 25,
+    permissionLevel: 'suspended',
+    createdAt: '2025-01-20T11:00:00.000Z',
+  },
+  {
+    id: 'admin_001',
+    name: '社区管理员',
+    phone: '13900139000',
+    role: 'admin',
+    building: '物业服务中心',
+    room: '201室',
+    creditScore: 100,
+    permissionLevel: 'normal',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+];
+
+export const getDefaultUser = (): User => mockUsers[0];
+export const getAdminUser = (): User => mockUsers[5];
