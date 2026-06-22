@@ -35,6 +35,9 @@ interface BookingState {
   addNotification: (type: AppNotification['type'], message: string) => void;
   removeNotification: (id: string) => void;
   getNextBooking: (zone: KitchenZone, date: string, time: string) => Booking | undefined;
+  canAccessBooking: (userId: string | undefined, userRole: string | undefined, bookingId: string) => boolean;
+  canConfirmCleanliness: (userId: string | undefined, bookingId: string) => boolean;
+  checkOverdueCleanings: () => number;
 }
 
 export const useBookingStore = create<BookingState>((set, get) => ({
@@ -197,5 +200,104 @@ export const useBookingStore = create<BookingState>((set, get) => ({
       .getBookingsByZoneAndDate(zone, date)
       .filter((b) => b.startTime > time && !['cancelled', 'rejected'].includes(b.status))
       .sort((a, b) => a.startTime.localeCompare(b.startTime))[0];
+  },
+
+  canAccessBooking: (userId, userRole, bookingId) => {
+    if (!userId) return false;
+    if (userRole === 'admin') return true;
+    const booking = get().getBooking(bookingId);
+    return !!booking && booking.userId === userId;
+  },
+
+  canConfirmCleanliness: (userId, bookingId) => {
+    if (!userId) return false;
+    const booking = get().getBooking(bookingId);
+    if (!booking || !booking.cleanPhotos || booking.cleanConfirmedAt) return false;
+    if (booking.userId === userId) return false;
+    if (useAuthStore.getState().currentUser?.role === 'admin') return true;
+    const next = get().getNextBooking(booking.zone, booking.date, booking.endTime);
+    return !!next && next.userId === userId;
+  },
+
+  checkOverdueCleanings: () => {
+    const now = new Date();
+    const allBookings = get().bookings;
+    let processed = 0;
+
+    const updatedBookings = allBookings.map((b) => {
+      if (['completed', 'cancelled', 'rejected', 'pending'].includes(b.status)) {
+        return b;
+      }
+
+      const endStr = `${b.date}T${b.endTime}:00`;
+      const endTime = new Date(endStr);
+      const diffMs = now.getTime() - endTime.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      if (diffHours <= 2) return b;
+
+      const hasPhotos = !!b.cleanPhotos && b.cleanPhotos.length > 0;
+
+      if (b.status === 'clean_pending') {
+        if (diffHours <= 12) return b;
+        processed++;
+        get().addViolation({
+          userId: b.userId,
+          userName: b.userName,
+          bookingId: b.id,
+          type: 'clean_unconfirmed',
+          description: '清洁照片上传后超过12小时未被下一位用户确认，系统自动标记为已完成',
+          pointDeduction: 5,
+        });
+        const user = useAuthStore.getState().users.find((u) => u.id === b.userId);
+        if (user) {
+          const result = deductCredit(user.creditScore, 5);
+          useAuthStore.getState().updateUserCredit(b.userId, result.newScore);
+        }
+        return {
+          ...b,
+          status: 'completed' as BookingStatus,
+          cleanConfirmedBy: 'system',
+          cleanConfirmedAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        };
+      }
+
+      if (!hasPhotos) {
+        processed++;
+        get().addViolation({
+          userId: b.userId,
+          userName: b.userName,
+          bookingId: b.id,
+          type: 'no_clean_photo',
+          description: '使用结束后超过2小时未上传清洁照片，已自动记录违规',
+          pointDeduction: 15,
+        });
+        const user = useAuthStore.getState().users.find((u) => u.id === b.userId);
+        if (user) {
+          const result = deductCredit(user.creditScore, 15);
+          useAuthStore.getState().updateUserCredit(b.userId, result.newScore);
+        }
+        return {
+          ...b,
+          status: 'completed' as BookingStatus,
+          updatedAt: now.toISOString(),
+        };
+      }
+
+      return {
+        ...b,
+        status: 'completed' as BookingStatus,
+        updatedAt: now.toISOString(),
+      };
+    });
+
+    if (processed > 0) {
+      storage.set(STORAGE_KEYS.BOOKINGS, updatedBookings);
+      set({ bookings: updatedBookings });
+      get().addNotification('info', `系统巡检完成，自动处理 ${processed} 条超时预约`);
+    }
+
+    return processed;
   },
 }));

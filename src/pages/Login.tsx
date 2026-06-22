@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChefHat, UserPlus, Users, ArrowRight, Phone, User } from 'lucide-react';
-import { useAuthStore } from '@/store/authStore';
+import { ChefHat, UserPlus, Users, ArrowRight, Phone, User, Lock, AlertCircle } from 'lucide-react';
+import { useAuthStore, ADMIN_PASSWORD } from '@/store/authStore';
 import { useBookingStore } from '@/store/bookingStore';
 import type { UserRole } from '@/types';
 
@@ -12,10 +12,18 @@ export const Login = () => {
 
   const [role, setRole] = useState<UserRole>('resident');
   const [phone, setPhone] = useState('13800138001');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login(role === 'resident' ? phone : undefined, role);
+    setErrorMsg('');
+
+    const ok = login(role === 'resident' ? phone : undefined, role, role === 'admin' ? password : undefined);
+    if (!ok) {
+      setErrorMsg(role === 'admin' ? '管理员密码错误' : '登录失败，请重试');
+      return;
+    }
     addNotification('success', role === 'admin' ? '管理员登录成功' : '欢迎回来！');
     navigate('/');
   };
@@ -131,16 +139,41 @@ export const Login = () => {
                   </p>
                 </div>
               ) : (
-                <div className="mb-8 p-4 bg-olive-50 rounded-2xl border border-olive-100">
-                  <div className="flex items-start gap-3">
-                    <User className="w-5 h-5 text-olive-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-olive-800">管理员模式</p>
-                      <p className="text-xs text-olive-500 mt-1 leading-relaxed">
-                        以社区管理员身份登录，可审核预约申请、查看使用记录、处理违规举报。
-                      </p>
+                <div className="mb-8 space-y-4">
+                  <div className="p-4 bg-olive-50 rounded-2xl border border-olive-100">
+                    <div className="flex items-start gap-3">
+                      <User className="w-5 h-5 text-olive-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-olive-800">管理员模式</p>
+                        <p className="text-xs text-olive-500 mt-1 leading-relaxed">
+                          审核预约申请、查看使用记录、处理违规举报
+                        </p>
+                      </div>
                     </div>
                   </div>
+                  <div>
+                    <label className="label-text">管理员密码</label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-olive-400" />
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="input-field pl-12"
+                        placeholder="请输入管理员密码"
+                      />
+                    </div>
+                    <p className="text-xs text-olive-400 mt-2">
+                      演示密码：<span className="font-mono bg-cream-100 px-1.5 py-0.5 rounded">{ADMIN_PASSWORD}</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {errorMsg && (
+                <div className="mb-6 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2 animate-fade-in-up">
+                  <AlertCircle className="w-5 h-5 text-rose-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-rose-700">{errorMsg}</p>
                 </div>
               )}
 

@@ -14,6 +14,7 @@ export type BookingStatus =
 export type ViolationType =
   | 'unclean'
   | 'no_clean_photo'
+  | 'clean_unconfirmed'
   | 'overtime'
   | 'equipment_damage'
   | 'no_show'

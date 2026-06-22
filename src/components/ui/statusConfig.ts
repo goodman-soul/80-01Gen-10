@@ -42,6 +42,11 @@ export const violationTypeConfig: Record<ViolationType, { label: string; classNa
     className: 'bg-amber-50 text-amber-700 border border-amber-200',
     icon: 'image-off',
   },
+  clean_unconfirmed: {
+    label: '清洁未按时确认',
+    className: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+    icon: 'clock-alert',
+  },
   overtime: {
     label: '超时使用',
     className: 'bg-orange-50 text-orange-700 border border-orange-200',

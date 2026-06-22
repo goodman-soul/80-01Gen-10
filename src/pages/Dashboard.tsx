@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 import {
   ChefHat,
   CookingPot,
@@ -33,6 +34,15 @@ export const Dashboard = () => {
   const violations = useBookingStore((s) => s.violations);
   const getUserBookings = useBookingStore((s) => s.getUserBookings);
   const getPendingBookings = useBookingStore((s) => s.getPendingBookings);
+  const checkOverdueCleanings = useBookingStore((s) => s.checkOverdueCleanings);
+
+  useEffect(() => {
+    checkOverdueCleanings();
+    const timer = setInterval(() => {
+      checkOverdueCleanings();
+    }, 5 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [checkOverdueCleanings]);
 
   const today = formatDate(new Date().toISOString());
   const currentTime = getCurrentTime();

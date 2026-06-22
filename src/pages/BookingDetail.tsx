@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -18,6 +18,7 @@ import {
   Upload,
   Trash2,
   CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useBookingStore } from '@/store/bookingStore';
@@ -39,6 +40,8 @@ export const BookingDetail = () => {
   const getBooking = useBookingStore((s) => s.getBooking);
   const uploadCleanPhotos = useBookingStore((s) => s.uploadCleanPhotos);
   const getNextBooking = useBookingStore((s) => s.getNextBooking);
+  const canAccessBooking = useBookingStore((s) => s.canAccessBooking);
+  const addNotification = useBookingStore((s) => s.addNotification);
 
   const [photos, setPhotos] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -48,6 +51,15 @@ export const BookingDetail = () => {
   const nextBooking = booking
     ? getNextBooking(booking.zone, booking.date, booking.endTime)
     : undefined;
+
+  const hasAccess = id ? canAccessBooking(currentUser?.id, currentUser?.role, id) : false;
+
+  useEffect(() => {
+    if (booking && !hasAccess) {
+      addNotification('error', '无权查看他人预约详情');
+      navigate('/my-bookings', { replace: true });
+    }
+  }, [booking, hasAccess, navigate, addNotification]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -93,6 +105,24 @@ export const BookingDetail = () => {
           <Link to="/my-bookings" className="btn-primary inline-flex items-center gap-2">
             <ArrowLeft className="w-4 h-4" />
             返回预约列表
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="page-container">
+        <div className="max-w-lg mx-auto card p-12 text-center">
+          <AlertTriangle className="w-16 h-16 text-amber-400 mx-auto mb-4" />
+          <h2 className="text-xl font-serif font-bold text-olive-800 mb-2">
+            无权限访问
+          </h2>
+          <p className="text-olive-500 mb-6">您无权查看此预约详情</p>
+          <Link to="/my-bookings" className="btn-primary inline-flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            返回我的预约
           </Link>
         </div>
       </div>

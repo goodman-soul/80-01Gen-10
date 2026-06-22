@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -33,6 +33,9 @@ export const CleanConfirm = () => {
   const currentUser = useAuthStore((s) => s.currentUser);
   const getBooking = useBookingStore((s) => s.getBooking);
   const confirmCleanliness = useBookingStore((s) => s.confirmCleanliness);
+  const canConfirmCleanliness = useBookingStore((s) => s.canConfirmCleanliness);
+  const addNotification = useBookingStore((s) => s.addNotification);
+  const getNextBooking = useBookingStore((s) => s.getNextBooking);
 
   const [showReport, setShowReport] = useState(false);
   const [reportReason, setReportReason] = useState('');
@@ -42,6 +45,17 @@ export const CleanConfirm = () => {
   const booking = id ? getBooking(id) : undefined;
   const zoneConfig = booking ? zones.find((z) => z.id === booking.zone) : undefined;
   const Icon = booking ? zoneIconMap[booking.zone] : ChefHat;
+  const hasPermission = id ? canConfirmCleanliness(currentUser?.id, id) : false;
+  const nextBooking = booking
+    ? getNextBooking(booking.zone, booking.date, booking.endTime)
+    : undefined;
+
+  useEffect(() => {
+    if (booking && booking.cleanPhotos && !hasPermission) {
+      addNotification('error', '您不是该时段下一位预约者，无权确认清洁状态');
+      navigate('/', { replace: true });
+    }
+  }, [booking, hasPermission, navigate, addNotification]);
 
   const handleConfirm = () => {
     if (!booking) return;
@@ -70,6 +84,31 @@ export const CleanConfirm = () => {
             无清洁照片待确认
           </h2>
           <p className="text-olive-500 mb-6">该预约尚未上传清洁照片或记录不存在</p>
+          <Link to="/" className="btn-primary inline-flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            返回首页
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasPermission) {
+    return (
+      <div className="page-container">
+        <div className="max-w-lg mx-auto card p-12 text-center">
+          <AlertTriangle className="w-16 h-16 text-amber-400 mx-auto mb-4" />
+          <h2 className="text-xl font-serif font-bold text-olive-800 mb-2">
+            无权限确认
+          </h2>
+          <p className="text-olive-500 mb-6">
+            只有该时段的下一位预约者才能确认清洁状态
+            {nextBooking && (
+              <span className="block mt-2 text-xs">
+                下一位使用者：{nextBooking.userName}（{nextBooking.startTime} 开始）
+              </span>
+            )}
+          </p>
           <Link to="/" className="btn-primary inline-flex items-center gap-2">
             <ArrowLeft className="w-4 h-4" />
             返回首页
